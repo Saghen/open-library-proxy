@@ -1,15 +1,9 @@
 # readarr-dump
 
-To install dependencies:
+OpenLibrary in MongoDB with a backend for consumption by Readarr. WIP
 
 ```bash
+docker run -it -v readarr-dump:/data/db -p 27017:27017 --name readarr-mongo mongo
 bun install
-```
-
-To run:
-
-```bash
 bun run index.ts
 ```
-
-This project was created using `bun init` in bun v1.1.20. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
