@@ -1,19 +1,8 @@
-import { MongoClient } from 'mongodb'
 import { migrateWork, type WorkDump, type Work } from './migrations/work'
 import ProgressBar from 'progress'
 import { migrateAuthor, type Author, type AuthorDump } from './migrations/author'
 import { migrateEdition, type Edition, type EditionDump } from './migrations/edition'
-
-const uri = 'mongodb://localhost:27017'
-const client = new MongoClient(uri, { ignoreUndefined: true })
-
-console.log('Connecting to MongoDB...')
-await client.connect()
-
-const db = client.db('readarr')
-const authors = db.collection<Author>('authors')
-const editions = db.collection<Edition>('editions')
-const works = db.collection<Work>('works')
+import { client, authors, editions, works } from './client'
 
 await authors.drop()
 await editions.drop()
@@ -41,7 +30,7 @@ for await (const chunk of fileStream) {
   buffer += decoder.decode(chunk)
   const lines = buffer.split('\n')
   for (const line of lines.slice(0, -1)) {
-    await processLine(line)
+    await migrateLineEntry(line)
   }
   buffer = lines.at(-1) ?? ''
 
@@ -54,11 +43,11 @@ for await (const chunk of fileStream) {
 }
 
 await flush()
-client.close()
+await client.close()
 
 //----------------
 
-async function processLine(line: string) {
+async function migrateLineEntry(line: string) {
   const [type, id, revision, date, json] = line.split('\t')
   const data = JSON.parse(json)
 
@@ -95,4 +84,3 @@ async function flush() {
   editionsToAdd = []
   worksToAdd = []
 }
-
