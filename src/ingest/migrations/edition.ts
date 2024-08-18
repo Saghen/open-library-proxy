@@ -85,11 +85,13 @@ export type Edition = {
   notes?: string
   editionName?: string
 
-  series?: string[]
+  series?: { name: string; position: number }[]
   works: Id[]
   workTitles?: string[]
 
+  // TODO: safe to ignore? this should be in the work
   authors?: Id[]
+  // TODO: convert to authors
   humanReadableAuthors?: string
 
   publishCountry?: string
@@ -98,11 +100,12 @@ export type Edition = {
   publishers?: string[]
   contributions?: string[]
 
+  // TODO: convert to subjects
   genres?: string[]
   deweyDecimalClass?: string[]
   subjects?: string[]
 
-  pagination?: Pagination
+  pagination?: string
   numberOfPages?: number
 
   ids: {
@@ -117,9 +120,9 @@ export type Edition = {
 
   covers?: Id[]
 
+  titleNativeLanguage?: string
   languages?: string[]
   translatedFrom?: string[]
-  translationOf?: string
 
   weight?: string
   physicalDimensions?: string
@@ -143,7 +146,15 @@ export function migrateEdition(data: EditionDump): Edition {
     notes: data.notes?.value,
     editionName: data.edition_name,
 
-    series: data.series,
+    series: data.series?.map((series) => {
+      const [name, positionStr] = series.match(/(.+?)[,\s]*(\d+)$/) ?? []
+      if (name === undefined || positionStr === undefined) throw new Error('Invalid series')
+
+      const position = Number(positionStr)
+      if (isNaN(position)) throw new Error('Invalid series position')
+
+      return { name, position: position }
+    }),
     works: (data.works ?? []).map(({ key }) => parseId(key)),
     workTitles: data.work_titles,
 
@@ -162,7 +173,7 @@ export function migrateEdition(data: EditionDump): Edition {
     deweyDecimalClass: data.dewey_decimal_class,
     subjects: data.subjects,
 
-    pagination: data.pagination ? parsePagination(data.pagination) : undefined,
+    pagination: data.pagination,
     numberOfPages: data.number_of_pages,
 
     ids: {
@@ -177,9 +188,9 @@ export function migrateEdition(data: EditionDump): Edition {
 
     covers: data.covers?.filter((cover) => cover !== null).map((id) => id.toString()),
 
+    titleNativeLanguage: data.translation_of,
     languages: data.languages,
     translatedFrom: data.translated_from,
-    translationOf: data.translation_of,
 
     weight: data.weight,
     physicalDimensions: data.physical_dimensions,

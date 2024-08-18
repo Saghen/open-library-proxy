@@ -10,5 +10,9 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "fejl": "^3.0.1",
+    "itty-router": "^5.0.18"
   }
 }
