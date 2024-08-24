@@ -1,4 +1,5 @@
-import type { Id, AuthorLink, DateType, Link, TextBlock } from './types'
+import type { Work } from '../../types'
+import type { AuthorLink, DateType, Link, TextBlock } from './types'
 import { parseId } from './utils'
 
 export type WorkDump = {
@@ -33,32 +34,6 @@ export type WorkDump = {
   id?: number
 }
 
-export type Work = {
-  _id: Id
-
-  title: string
-  subtitle?: string
-  covers?: Id[]
-  authors?: Id[]
-  /** Related URLs */
-  links?: { url: string; title: string }[]
-
-  // TODO: what is this? exmaple: "RC489.L6 F69613 1997"
-  lcClassifications?: string[]
-  subjects?: string[]
-  subjectPlaces?: string[]
-  subjectTimes?: string[]
-  subjectPeople?: string[]
-
-  description?: string
-  notes?: string
-
-  firstPublishYear?: number
-
-  createdAt?: Date
-  updatedAt?: Date
-}
-
 export function migrateWork(data: WorkDump): Work {
   return {
     _id: parseId(data.key),
@@ -70,6 +45,8 @@ export function migrateWork(data: WorkDump): Work {
       ?.filter((_) => _.author?.key !== undefined)
       .map(({ author }) => parseId(author!.key)),
     links: data.links?.map(({ url, title }) => ({ url, title })),
+
+    ratingCount: 0,
 
     lcClassifications: data.lc_classifications,
     subjects: data.subjects,

@@ -1,4 +1,5 @@
-import type { Id, DateType, TextBlock } from './types'
+import type { Author } from '../../types'
+import type { DateType, TextBlock } from './types'
 import { parseId } from './utils'
 
 export type AuthorDump = {
@@ -34,34 +35,6 @@ export type AuthorDump = {
   last_modified: DateType
 }
 
-export type Author = {
-  _id: Id
-
-  type?: 'person' | 'org' | 'event'
-
-  name: string
-  personalName?: string
-  fullerName?: string
-  alternateNames?: string[]
-  title?: string
-
-  bio?: string
-  location?: string
-  birthDate?: Date
-  deathDate?: Date
-
-  /** IDs for the cover images */
-  photos?: Id[]
-
-  links?: {
-    wikidata?: string
-    viaf?: string
-  }
-
-  createdAt?: Date
-  updatedAt?: Date
-}
-
 export function migrateAuthor(data: AuthorDump): Author {
   return {
     _id: parseId(data.key),
@@ -73,6 +46,8 @@ export function migrateAuthor(data: AuthorDump): Author {
     fullerName: data.fuller_name,
     alternateNames: data.alternate_names,
     title: data.title,
+
+    ratingCount: 0,
 
     bio: data.bio?.value,
     location: data.location,

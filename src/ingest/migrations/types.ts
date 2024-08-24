@@ -1,5 +1,3 @@
-export type Id = string
-
 export type DateType = {
   type: '/type/datetime'
   value: string

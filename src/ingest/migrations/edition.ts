@@ -1,6 +1,6 @@
-import type { Id, AuthorLink, DateType, Link, TextBlock } from './types'
-import { type Pagination, parsePagination } from './pagination'
+import type { AuthorLink, DateType, Link, TextBlock } from './types'
 import { parseId } from './utils'
+import type { Edition } from '../../types'
 
 export type EditionDump = {
   type: { key: '/type/edition' }
@@ -53,7 +53,7 @@ export type EditionDump = {
 
   covers?: (null | number)[]
 
-  languages?: string[]
+  languages?: (string | { key: string })[]
   /** Translated from original language(s) */
   translated_from?: string[]
   /** The title of the original work in its language. Example: "Ai margini del cao" */
@@ -75,67 +75,7 @@ export type EditionDump = {
   last_modified: DateType
 }
 
-export type Edition = {
-  _id: Id
-
-  title: string
-  subtitle?: string
-  description?: string
-  firstSentence?: string
-  notes?: string
-  editionName?: string
-
-  series?: { name: string; position: number }[]
-  works: Id[]
-  workTitles?: string[]
-
-  // TODO: safe to ignore? this should be in the work
-  authors?: Id[]
-  // TODO: convert to authors
-  humanReadableAuthors?: string
-
-  publishCountry?: string
-  publishDate?: Date
-  publishPlaces?: string[]
-  publishers?: string[]
-  contributions?: string[]
-
-  // TODO: convert to subjects
-  genres?: string[]
-  deweyDecimalClass?: string[]
-  subjects?: string[]
-
-  pagination?: string
-  numberOfPages?: number
-
-  ids: {
-    isbn10?: string
-    isbn13?: string
-    lccn?: string
-    ocaid?: string
-    oclcNumbers?: string[]
-    localId?: string[]
-  }
-  relatedLinks?: { url: string; title: string }[]
-
-  covers?: Id[]
-
-  titleNativeLanguage?: string
-  languages?: string[]
-  translatedFrom?: string[]
-
-  weight?: string
-  physicalDimensions?: string
-  physicalFormat?: string
-
-  copyrightYear?: number
-
-  createdAt?: Date
-  updatedAt?: Date
-}
-
 export function migrateEdition(data: EditionDump): Edition {
-  // TOOD: how is this possible and how often is this the case?
   return {
     _id: parseId(data.key),
 
@@ -146,17 +86,18 @@ export function migrateEdition(data: EditionDump): Edition {
     notes: data.notes?.value,
     editionName: data.edition_name,
 
-    series: data.series?.map((series) => {
-      const [name, positionStr] = series.match(/(.+?)[,\s]*(\d+)$/) ?? []
-      if (name === undefined || positionStr === undefined) throw new Error('Invalid series')
+    // FIXME:
+    series: data.series?.filter(Boolean).map((series) => {
+      const [name, positionStr] = series.match(/(.+?)[,\s]*(\d+)?$/) ?? []
+      if (name === undefined) throw new Error('Invalid series: ' + series)
 
       const position = Number(positionStr)
-      if (isNaN(position)) throw new Error('Invalid series position')
-
-      return { name, position: position }
+      return { name, position: isNaN(position) ? undefined : position }
     }),
     works: (data.works ?? []).map(({ key }) => parseId(key)),
     workTitles: data.work_titles,
+
+    ratingCount: 0,
 
     authors: data.authors
       ?.filter((_) => _.author?.key !== undefined)
@@ -189,7 +130,9 @@ export function migrateEdition(data: EditionDump): Edition {
     covers: data.covers?.filter((cover) => cover !== null).map((id) => id.toString()),
 
     titleNativeLanguage: data.translation_of,
-    languages: data.languages,
+    languages: data.languages
+      ?.map((lang) => (typeof lang === 'string' ? lang : parseId(lang.key)))
+      .filter(Boolean),
     translatedFrom: data.translated_from,
 
     weight: data.weight,
