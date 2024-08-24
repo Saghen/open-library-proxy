@@ -5,14 +5,14 @@ import ProgressBar from 'progress'
 export default async function ingestMongo() {
   // Clear MongoDB
   console.log('Clearing...')
-  // await mongo.authors.drop()
-  // await mongo.editions.drop()
-  // await mongo.works.drop()
-  // await mongo.ratings.drop()
+  await mongo.authors.drop()
+  await mongo.editions.drop()
+  await mongo.works.drop()
+  await mongo.ratings.drop()
 
   // Ingest data to MongoDB
-  // console.log('Processing dump...')
-  // await processFileByLine('./data/dump.tsv', migrator.process, migrator.flush)
+  console.log('Processing dump...')
+  await processFileByLine('./data/dump.tsv', migrator.process, migrator.flush)
 
   console.log('Processing ratings...')
   await processFileByLine('./data/ratings.tsv', migrator.processRatings, migrator.flushRatings)

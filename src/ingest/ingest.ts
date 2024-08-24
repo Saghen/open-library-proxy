@@ -14,8 +14,8 @@ export default async function ingest(forceRebuild: boolean = false) {
 
   await download()
 
-  // console.log(c.bold('Ingesting into MongoDB'))
-  // await ingestMongo()
+  console.log(c.bold('Ingesting into MongoDB'))
+  await ingestMongo()
 
   // Ingest data to MeiliSearch
   console.log(c.bold('Ingesting into MeiliSearch'))
