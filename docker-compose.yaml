@@ -1,0 +1,18 @@
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo:/data/db
+    ports:
+      - 27017:27017
+
+  meili:
+    image: getmeili/meilisearch:v1.9
+    volumes:
+      - meili:/meili_data
+    ports:
+      - 7700:7700
+
+volumes:
+  mongo:
+  meili:
