@@ -44,16 +44,23 @@ type GoodReadsSearchAuthor = {
 
 export default async function bookInfoSearch(query: string): Promise<Response> {
   const queryId = (Math.random() + 1).toString(16).slice(2, 12)
-  const search = await meili.works.search(query, { limit: 20 })
+  const searchWorkIds = await meili.works
+    .search(query, { limit: 5 })
+    .then((search) => search.hits.map((hit) => hit.id))
 
   // prettier-ignore
   const works = await mongo.works
     .aggregate<Omit<Work, 'authors'> & { authors: Author[], editions: Edition[] }>([
-      { $match: { _id: { $in: search.hits.map((result) => result.id) }, authors: { $ne: [] } } },
+      { $match: { _id: { $in: searchWorkIds }, authors: { $ne: [] } } },
       { $lookup: { from: 'authors', localField: 'authors', foreignField: '_id', as: 'authors' } },
       { $lookup: { from: 'editions', localField: '_id', foreignField: 'works', as: 'editions' } },
     ])
-    .toArray().then(works => works.filter((work => work.editions.length > 0)))
+    .toArray()
+    .then(works =>
+      works
+        .filter((work => work.editions.length > 0))
+        .sort((a, b) => searchWorkIds.indexOf(a._id) - searchWorkIds.indexOf(b._id))
+    )
 
   const results: GoodReadsSearchWork[] = works
     .filter((work) => work.authors.length > 0)
@@ -74,7 +81,7 @@ export default async function bookInfoSearch(query: string): Promise<Response> {
       },
       numPages: Math.max(...work.editions.map((edition) => edition.numberOfPages ?? 0)),
       avgRating: (work.averageRating ?? 0).toString(),
-      ratingsCount: work.ratingCount,
+      ratingsCount: work.ratingCount ?? 0, // todo: this should never be undefined, need resync?
       imageUrl: work.covers?.[0] ?? '',
 
       author: {

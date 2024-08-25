@@ -9,6 +9,9 @@ const uniqueByProperty = <T>(array: T[], property: keyof T) =>
   )
 
 export default async function bulk(ids: string[]) {
+  // We receive the edition IDs so we go from editions -> works -> authors
+  // and then grab all the works/editions for each author
+
   const editions = await mongo.editions
     .find({ _id: { $in: ids.map((id) => foreignIdToId(id, 'edition')) } })
     .toArray()
@@ -16,7 +19,7 @@ export default async function bulk(ids: string[]) {
     .find({ _id: { $in: editions.flatMap((edition) => edition.works) } })
     .toArray()
   const authors = await mongo.authors
-    .find({ _id: { $in: works.flatMap((work) => work.authors ?? []) } })
+    .find({ _id: { $in: works.flatMap((work) => work.authors?.[0] ?? []) } })
     .toArray()
 
   const biAuthors: BIAuthor[] = []
@@ -38,19 +41,12 @@ export default async function bulk(ids: string[]) {
     biAuthors.flatMap((author) => author.Works),
     'ForeignId',
   )
-  // console.log(
-  //   JSON.stringify({
-  //     Works: uniqueWorks,
-  //     Authors: uniqueAuthors.map(({ Works, Series, ...Author }) => Author),
-  //     Series: uniqueSeries,
-  //   }),
-  // )
 
   return new Response(
     JSON.stringify({
       Works: uniqueWorks,
       Authors: uniqueAuthors.map(({ Works, Series, ...Author }) => Author),
-      Series: uniqueSeries,
+      Series: [],
     }),
     { headers: { 'Content-Type': 'application/json' } },
   )

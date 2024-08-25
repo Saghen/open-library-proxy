@@ -2,7 +2,6 @@ import ProgressBar from 'progress'
 import * as mongo from '../mongo'
 import * as meili from '../meili'
 import type { Author, Edition, MeiliWork, Work } from '../types'
-import type { EnqueuedTask } from 'meilisearch'
 
 type AggregateWork = Omit<Work, 'authors'> & { authors: Author[]; editions: Edition[] }
 
@@ -22,7 +21,7 @@ export default async function ingestMeili() {
     [
       { $match: {} },
       { $lookup: { from: 'authors', localField: 'authors', foreignField: '_id', as: 'authors' } },
-      // { $lookup: { from: 'editions', localField: '_id', foreignField: 'works', as: 'editions' } },
+      { $lookup: { from: 'editions', localField: '_id', foreignField: 'works', as: 'editions' } },
     ],
     { batchSize: 10_000 },
   )
@@ -34,10 +33,13 @@ export default async function ingestMeili() {
       title: work.title,
       subtitle: work.subtitle ?? '',
       authors: work.authors?.map((author) => author.name),
-      // series: Array.from(
-      //   new Set(work.editions.flatMap((edition) => edition.series ?? []).map((series) => series.name)),
-      // ),
-      ratingCount: work.ratingCount,
+      subjects: work.subjects ?? [],
+      series: Array.from(
+        new Set(work.editions.flatMap((edition) => edition.series ?? []).map((series) => series.name)),
+      ),
+      editionCount: work.editions.length,
+      ratingCount: work.ratingCount ?? 0,
+      authorRatingCount: work.authors[0]?.ratingCount ?? 0,
     })
     if (worksToAdd.length >= 10_000) {
       await meili.works.addDocuments(worksToAdd)
@@ -59,11 +61,21 @@ export default async function ingestMeili() {
       progress.tick(10_000)
     }
   }
-  await meili.works.addDocuments(worksToAdd)
 
+  // Flush remaining
+  await meili.works.addDocuments(worksToAdd)
   progress.update(1)
 
   // Set order in which attributes are preferred during search
   await meili.works.updateSearchableAttributes(['title', 'authors', 'series', 'subtitle'])
-  await meili.works.updateSortableAttributes(['reviewCount'])
+  await meili.works.updateSortableAttributes(['reviewCount', 'authorRatingCount'])
+  await meili.works.updateRankingRules([
+    'words',
+    'typo',
+    'proximity',
+    'attribute',
+    'sort',
+    'ratingCount:desc',
+    'authorRatingCount:desc',
+  ])
 }

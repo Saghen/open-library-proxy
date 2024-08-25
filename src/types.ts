@@ -134,7 +134,10 @@ export type MeiliWork = {
   id: string
   title: string
   subtitle: string
+  subjects: string[]
   series: string[]
   authors: string[]
+  editionCount: number
   ratingCount: number
+  authorRatingCount: number
 }

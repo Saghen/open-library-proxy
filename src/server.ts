@@ -9,28 +9,9 @@ import ingest from './ingest/ingest'
 
 await ingest(process.env.FORCE_REBUILD === 'true')
 
-function streamToString(stream: ReadableStream<Uint8Array>): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: Uint8Array[] = []
-    stream.pipeTo(
-      new WritableStream({
-        write(chunk) {
-          chunks.push(chunk)
-        },
-        close() {
-          resolve(new TextDecoder().decode(new Uint8Array(chunks)))
-        },
-        abort(e) {
-          reject(e)
-        },
-      }),
-    )
-  })
-}
-
 const server = Bun.serve({
   async fetch(req) {
-    console.log('Incoming request: ', req.url)
+    console.log('Incoming request:', req.url)
 
     const router = AutoRouter({
       base: '/bookinfo/v1',

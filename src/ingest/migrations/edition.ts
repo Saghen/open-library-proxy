@@ -1,6 +1,7 @@
 import type { AuthorLink, DateType, Link, TextBlock } from './types'
 import { parseId } from './utils'
 import type { Edition } from '../../types'
+import { parseSeriesString, parseSeriesStrings } from './series'
 
 export type EditionDump = {
   type: { key: '/type/edition' }
@@ -76,6 +77,7 @@ export type EditionDump = {
 }
 
 export function migrateEdition(data: EditionDump): Edition {
+  const series = parseSeriesStrings(data.series?.filter((series) => series.length > 0))
   return {
     _id: parseId(data.key),
 
@@ -86,17 +88,11 @@ export function migrateEdition(data: EditionDump): Edition {
     notes: data.notes?.value,
     editionName: data.edition_name,
 
-    // FIXME:
-    series: data.series?.filter(Boolean).map((series) => {
-      const [name, positionStr] = series.match(/(.+?)[,\s]*(\d+)?$/) ?? []
-      if (name === undefined) throw new Error('Invalid series: ' + series)
-
-      const position = Number(positionStr)
-      return { name, position: isNaN(position) ? undefined : position }
-    }),
+    series: series ? [series] : [],
     works: (data.works ?? []).map(({ key }) => parseId(key)),
     workTitles: data.work_titles,
 
+    // populated by an aggregation after ingest
     ratingCount: 0,
 
     authors: data.authors
@@ -112,6 +108,7 @@ export function migrateEdition(data: EditionDump): Edition {
 
     genres: data.genres,
     deweyDecimalClass: data.dewey_decimal_class,
+    // TODO: normalize
     subjects: data.subjects,
 
     pagination: data.pagination,
