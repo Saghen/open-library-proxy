@@ -5,14 +5,6 @@ import { idToForeignId, stringToForeignId } from './helpers'
 import type { BIAuthor, BIBook, BISeries, BISeriesLinkItem } from './types'
 
 export function convertAuthor(author: Author, authorWorks: Work[], authorEditions: Edition[]): BIAuthor {
-  // TODO: merge names that are extremely similar
-  // TODO: resolves conflicts by choosing the one with the most works/reviews
-  const series = authorEditions
-    .flatMap((edition) => edition.series ?? [])
-    .filter((series, i, allSeries) =>
-      allSeries.slice(0, i).every((otherSeries) => otherSeries.name !== series.name),
-    )
-
   // TODO: filter during ingestion
   authorWorks = authorWorks.filter((work) => work.title !== undefined)
   // TODO: something wrong with createdAt/publishDate causing it to be at year 0000
@@ -21,13 +13,6 @@ export function convertAuthor(author: Author, authorWorks: Work[], authorEdition
       (!edition.createdAt || edition.createdAt > new Date('0001-01-01')) &&
       (!edition.publishDate || edition.publishDate > new Date('0001-01-01')),
   )
-
-  // TODO: temporary
-  for (const edition of authorEditions) {
-    edition.languages = edition.languages?.map((lang) =>
-      typeof lang !== 'string' ? parseId(lang.key) : lang,
-    )
-  }
 
   return {
     ForeignId: Number(idToForeignId(author._id)),
@@ -102,39 +87,63 @@ export function convertAuthor(author: Author, authorWorks: Work[], authorEdition
       })
       .filter(({ Books }) => Books.length > 0),
 
-    Series: series.map<BISeries>((series) => ({
-      ForeignId: stringToForeignId(series.name),
-      Name: series.name,
-      Title: series.name,
+    Series: extractSeriesList(authorEditions),
+  }
+}
+
+function extractSeriesList(editions: Edition[]): BISeries[] {
+  // TODO: merge names that are extremely similar
+  // TODO: only include series with ratingCounts that make sense for the author
+  const seriesNames = editions
+    .flatMap((edition) => edition.series ?? [])
+    .filter((series, i, allSeries) =>
+      allSeries.slice(0, i).every((otherSeries) => otherSeries.name !== series.name),
+    )
+    .map((series) => series.name)
+
+  const series: BISeries[] = []
+  for (const seriesName of seriesNames) {
+    const seriesEditions = editions.filter((edition) =>
+      edition.series?.some((editionSeries) => editionSeries.name === seriesName),
+    )
+
+    const editionsWithPosition: Record<number, Edition> = {}
+    for (const edition of seriesEditions) {
+      const relevantSeries = edition.series!.find((editionSeries) => editionSeries.name === seriesName)!
+      // TODO: don't ingore when position is missing
+      if (!relevantSeries.position) continue
+
+      const existingEdition = editionsWithPosition[relevantSeries.position]
+      // Only replace if the new edition has a higher rating count
+      // TODO: only include editions that have a ratingCount similar to the others
+      if (!existingEdition || existingEdition.ratingCount < edition.ratingCount) {
+        editionsWithPosition[relevantSeries.position] = edition
+      }
+    }
+
+    series.push({
+      ForeignId: stringToForeignId(seriesName),
+      Title: seriesName,
       Description: '',
-      Url: '', // TODO: openlibrary doesnt have a page for series
-      LinkItems: authorWorks
-        .map((work) => ({
-          work,
-          editions: authorEditions.filter((edition) => edition.works?.includes(work._id)),
-        }))
-        // Get only works/editions that belong to this series
-        .filter(({ editions }) =>
-          editions.some((edition) =>
-            edition.series?.some((editionSeries) => editionSeries.name === series.name),
-          ),
-        )
-        .map<BISeriesLinkItem>(({ work, editions }) => ({
-          ForeignSeriesId: stringToForeignId(series.name),
-          ForeignWorkId: idToForeignId(work._id),
-          Title: work.title,
-          Url: `https://openlibrary.org/works/${work._id}`,
-          // HACK: lol
-          // TODO: dont default to 1?
-          PositionInSeries: String(
-            editions
-              .find((edition) => edition.series?.some((editionSeries) => editionSeries.name === series.name))
-              ?.series?.find((editionSeries) => editionSeries.name === series.name)?.position ?? 1,
-          ),
-          Primary: true, // TODO: why is this always true?
-          SeriesPosition: 0, // TODO: why is this always 0?
-        }))
-        .sort((a, b) => Number(a.PositionInSeries) - Number(b.PositionInSeries)),
-    })),
+      LinkItems: Object.entries(editionsWithPosition).map(([position, edition]) =>
+        editionToSeriesLinkItem(edition, { name: seriesName, position: Number(position) }),
+      ),
+    })
+  }
+
+  return series
+}
+
+function editionToSeriesLinkItem(
+  edition: Edition,
+  series: { name: string; position?: number },
+): BISeriesLinkItem {
+  return {
+    ForeignSeriesId: stringToForeignId(series.name),
+    ForeignWorkId: idToForeignId(edition._id),
+    Title: edition.title,
+    PositionInSeries: series.position !== undefined ? String(series.position) : null,
+    Primary: true, // TODO: why is this always true?
+    SeriesPosition: 0, // TODO: why is this always 0?
   }
 }

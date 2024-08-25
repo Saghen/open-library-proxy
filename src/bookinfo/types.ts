@@ -66,7 +66,8 @@ export type BISeries = {
 
 export type BISeriesLinkItem = {
   Primary: boolean // TODO: what is this?
-  PositionInSeries: string // number as string starting from 1
+  // TODO: can this be null?
+  PositionInSeries: string | null // number as string starting from 1
   SeriesPosition: number // TODO: always 0?
   ForeignSeriesId: number
   ForeignWorkId: number
