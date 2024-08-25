@@ -3,14 +3,13 @@
   "module": "src/server.ts",
   "type": "module",
   "scripts": {
-    "start": "bun run ."
+    "start": "bun run .",
+    "dev": "bun --watch run ."
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/progress": "^2.0.7"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+    "@types/progress": "^2.0.7",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "ansi-colors": "^4.1.3",
