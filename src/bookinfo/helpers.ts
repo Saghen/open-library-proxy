@@ -21,6 +21,7 @@ export function foreignIdToId(foreignId: number | string, type: 'work' | 'author
  * n = 16 (hex), r = 64 (hash length) = 5391644226101705
  **/
 export function stringToForeignId(uniqueStr: string): number {
-  const hash = createHash('sha256').update(uniqueStr).digest('hex')
-  return Array.from(hash).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const hash = createHash('sha256').update(uniqueStr).digest()
+  // Read the first 4 bytes as a 32-bit integer
+  return Math.abs(hash.readInt32BE(0))
 }

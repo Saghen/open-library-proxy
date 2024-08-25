@@ -131,7 +131,7 @@ function extractSeriesList(editions: Edition[]): BISeries[] {
     })
   }
 
-  return series
+  return series.filter((series) => series.LinkItems.length > 0)
 }
 
 function editionToSeriesLinkItem(
@@ -140,8 +140,7 @@ function editionToSeriesLinkItem(
 ): BISeriesLinkItem {
   return {
     ForeignSeriesId: stringToForeignId(series.name),
-    ForeignWorkId: idToForeignId(edition._id),
-    Title: edition.title,
+    ForeignWorkId: idToForeignId(edition.works[0]), // TODO:
     PositionInSeries: series.position !== undefined ? String(series.position) : null,
     Primary: true, // TODO: why is this always true?
     SeriesPosition: 0, // TODO: why is this always 0?

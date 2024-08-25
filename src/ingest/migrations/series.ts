@@ -14,7 +14,7 @@ const seriesPatterns: [RegExp, (match: RegExpExecArray) => { series: string, num
    (m) => ({ series: m[1].trim(), number: m[2] })],
 
   // Volume/book patterns
-  [/^(.*?)(?:,?\s*|--\s*|\s+)(?:lac|n|t\.|v\.|vol\.|volume|book|booklet|bk\.|b\.|bd\.|nr\.|mis\.)\s*(\d+(?:\.\d+)?)/i, 
+  [/^(.*?)(?:,?\s*|--\s*|\s+)(?:lac|n|t\.|v\.|vol\.|volume|series|book|booklet|bk\.|b\.|bd\.|nr\.|mis\.)\s*(\d+(?:\.\d+)?)/i, 
    (m) => ({ series: m[1].trim(), number: m[2] })],
 
   // Parentheses/bracket patterns
@@ -76,6 +76,7 @@ export function parseSeriesString(input: string): Series | null {
     if (!match) continue
 
     const series = extract(match)
+    // TODO: convert to title case
     const name = trim(series.series)
     const position =
       writtenNumberToNumber(series.number) ?? romanNumeralToNumber(series.number) ?? Number(series.number)
@@ -90,7 +91,7 @@ export function parseSeriesString(input: string): Series | null {
 /** Removes trailing punctuation, "book", and dates */
 function trim(str: string): string {
   // TODO: should clean up a ton of possible endings (vol, no, nr, mis, etc.)
-  return str.replace(/^\s+|([\s\[\]\(\)\-,;:.]|book|booklet)+$/g, '')
+  return str.replace(/^\s+|([\s\[\]\(\)\-,;:.]|book|booklet|series)+$/gi, '')
 }
 
 // TODO: use a library
