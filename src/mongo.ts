@@ -1,13 +1,13 @@
 import { MongoClient } from 'mongodb'
-import type { Author, Edition, Rating, Work } from './types'
+import type { Author, Edition, Rating, Status, Work } from './types'
+import { config } from './config'
 
 console.log('Connecting to MongoDB...')
-const uri = 'mongodb://localhost:27017'
-const client = new MongoClient(uri, { ignoreUndefined: true })
+const client = new MongoClient(config.mongo.connectionString, { ignoreUndefined: true })
 await client.connect()
 console.log('Connected to MongoDB')
 
-const db = client.db('readarr')
+const db = client.db()
 const authors = db.collection<Author>('authors')
 const editions = db.collection<Edition>('editions')
 const works = db.collection<Work>('works')
