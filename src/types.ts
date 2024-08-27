@@ -1,5 +1,13 @@
 export type Id = string
 
+export type Status = {
+  ingestion: {
+    completedAt?: Date
+    mongoCompletedAt?: Date
+    meiliCompletedAt?: Date
+  }
+}
+
 export type Author = {
   _id: Id
 
