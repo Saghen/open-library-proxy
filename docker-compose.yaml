@@ -1,18 +1,47 @@
 services:
   mongo:
     image: mongo:7
-    volumes:
-      - mongo:/data/db
+    environment:
+      # TODO: using the root user isn't ideal, but should be fine for now
+      MONGO_INITDB_ROOT_USERNAME: open-library-proxy
+      # Generate with `openssl rand -hex 32`. Copy to open-library-proxy env
+      MONGO_INITDB_ROOT_PASSWORD: stringsolongandpowerfulnoonecouldguessit
     ports:
       - 27017:27017
+    volumes:
+      - mongo:/data/db
 
   meili:
     image: getmeili/meilisearch:v1.9
-    volumes:
-      - meili:/meili_data
+    environment:
+      MEILI_NO_ANALYTICS: 'true'
+      # Generate with `openssl rand -hex 32`. Copy to open-library-proxy env
+      MEILI_MASTER_KEY: stringsolongandpowerfulnoonecouldguessit
     ports:
       - 7700:7700
+    volumes:
+      - meili:/meili_data
+
+  open-library-proxy:
+    image: ghcr.io/saghen/open-library-proxy:latest
+    # Only runs when using --profile prod
+    profiles:
+      - prod
+    depends_on:
+      - mongo
+      - meili
+    environment:
+      OLP_HOSTNAME: 0.0.0.0
+      OLP_PORT: 8080
+      OLP_MONGO_CONNECTION_STRING: mongodb://open-library-proxy:stringsolongandpowerfulnoonecouldguessit@mongo:27017/open-library-proxy?authSource=admin
+      OLP_MEILI_HOST: meili:7700
+      OLP_MEILI_MASTER_KEY: stringsolongandpowerfulnoonecouldguessit
+    ports:
+      - 8080:8080
+    volumes:
+      - open-library-proxy:/app/data
 
 volumes:
   mongo:
   meili:
+  open-library-proxy:

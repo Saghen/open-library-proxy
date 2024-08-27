@@ -2,12 +2,15 @@
   "name": "readarr-dump",
   "module": "src/server.ts",
   "type": "module",
+  "engines": {
+    "bun": "~1.1"
+  },
   "scripts": {
     "start": "bun run .",
     "dev": "bun --watch run ."
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "~1.1",
     "@types/progress": "^2.0.7",
     "typescript": "^5.5.4"
   },
