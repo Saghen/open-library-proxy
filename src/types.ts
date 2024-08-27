@@ -56,7 +56,6 @@ export type Edition = {
   ratingCount: number
   averageRating?: number
 
-  // TODO: safe to ignore? this should be in the work
   authors?: Id[]
   // TODO: convert to authors
   humanReadableAuthors?: string
@@ -70,6 +69,7 @@ export type Edition = {
   // TODO: convert to subjects
   genres?: string[]
   deweyDecimalClass?: string[]
+  // TODO: normalize to enum
   subjects?: string[]
 
   pagination?: string
@@ -93,7 +93,7 @@ export type Edition = {
 
   weight?: string
   physicalDimensions?: string
-  // TODO: can this be an enum?
+  // TODO: normalize to enum
   physicalFormat?: string
 
   copyrightYear?: number
@@ -122,7 +122,7 @@ export type Work = {
   ratingCount: number
   averageRating?: number
 
-  // TODO: what is this? exmaple: "RC489.L6 F69613 1997"
+  // TODO: what is this? example: "RC489.L6 F69613 1997"
   lcClassifications?: string[]
   subjects?: string[]
   subjectPlaces?: string[]

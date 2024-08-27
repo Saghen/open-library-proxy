@@ -1,8 +1,6 @@
 import { NotFound, BadRequest } from 'fejl'
 import * as mongo from '../../mongo'
-import { foreignIdToId, idToForeignId, stringToForeignId } from '../helpers'
-import type { BIAuthor, BIBook, BISeries, BISeriesLinkItem } from '../types'
-import { coverIdToUrl } from '../../utils'
+import { foreignIdToId } from '../helpers'
 import { convertAuthor } from '../convert'
 
 export default async function author(id: string): Promise<Response> {
