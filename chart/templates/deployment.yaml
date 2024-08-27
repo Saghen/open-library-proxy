@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "open-library-proxy.fullname" . }}
+  labels:
+    {{- include "open-library-proxy.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "open-library-proxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        kubectl.kubernetes.io/default-container: open-library-proxy
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "open-library-proxy.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "open-library-proxy.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: open-library-proxy
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.openLibraryProxy.image.repository }}:{{ .Values.openLibraryProxy.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.openLibraryProxy.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{ if .Values.openLibraryProxy.persistence.enabled }}
+          volumeMounts:
+            - name: open-library-proxy-data
+              mountPath: /app/data
+          {{ end }}
+
+        - name: mongo
+          image: {{ .Values.mongo.image.repository }}:{{ .Values.mongo.image.tag }}
+          imagePullPolicy: {{ .Values.mongo.image.pullPolicy }}
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "open-library-proxy.fullname" . }}
+                  key: mongo-root-username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "open-library-proxy.fullname" . }}
+                  key: mongo-root-password
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{ if .Values.mongo.persistence.enabled }}
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+          {{ end }}
+
+        - name: meilisearch
+          image: getmeili/meilisearch:v1.9
+          imagePullPolicy: Always
+          env:
+            - name: MEILI_NO_ANALYTICS
+              value: "true"
+            - name: MEILI_ENV
+              value: production
+            - name: MEILI_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "open-library-proxy.fullname" . }}
+                  key: meilisearch-master-key
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{ if .Values.meilisearch.persistence.enabled }}
+          volumeMounts:
+            - name: meili-data
+              mountPath: /meili_data
+          {{ end }}
+
+      volumes:
+        {{ if .Values.openLibraryProxy.persistence.enabled }}
+        - name: open-library-proxy-data
+          persistentVolumeClaim:
+            claimName: {{ include "open-library-proxy.fullname" . }}-data
+        {{ end }}
+        {{ if .Values.mongo.persistence.enabled }}
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: {{ include "open-library-proxy.fullname" . }}-mongo-data
+        {{ end }}
+        {{ if .Values.meilisearch.persistence.enabled }}
+        - name: meili-data
+          persistentVolumeClaim:
+            claimName: {{ include "open-library-proxy.fullname" . }}-meili-data
+        {{ end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
