@@ -1,5 +1,10 @@
 # open-library-proxy
 
+> [!WARNING]
+> This project is a work in progress and the Servarr team provides **no support** for it
+>
+> Please reach out to @saghen via discord or via email at liamcdyer@gmail.com if you're interested in contributing
+
 Serve a search, author and bulk API on top of the [OpenLibrary](https://openlibrary.org/developers/dumps) corpus. Primarily for consumption by [Readarr](https://wiki.servarr.com/readarr).
 
 ## Development
